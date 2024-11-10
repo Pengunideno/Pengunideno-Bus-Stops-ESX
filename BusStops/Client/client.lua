@@ -13,15 +13,32 @@ function isAtBusStop(busStop)
     return distance < 2.0
 end
 
-function isNearBusStop()
-    local playerPed = PlayerPedId()
-    local playerCoords = GetEntityCoords(playerPed)
+interactKeybind = lib.addKeybind({
+    name = 'busStopInteract',
+    description = 'Press E to open the bus stop menu',
+    defaultKey = 'E',
+    onReleased = openBusStopMenu
+})
+
+function setupZones()
+    local playerCoords = GetEntityCoords(cache.ped)
 
     for _, stop in ipairs(busStops) do
-        local distance = #(playerCoords.xyz - stop.location.xyz)
-        if distance < 1.5 then
-            return true
-        end
+        stop.zone = lib.zones.sphere({
+            coords = stop.location,
+            radius = 5,
+            onEnter = function()
+                lib.showTextUI('[E] - Open Bus Stop Menu', {
+                    position = "top-center",
+                    icon = 'bus'
+                })
+                interactKeybind:disable(false)
+            end,
+            onExit = function()
+                lib.hideTextUI()
+                interactKeybind:disable(true)
+            end
+        })
     end
     return false
 end
@@ -154,30 +171,4 @@ AddEventHandler('penguineodoBus:notifyBrokeBoy', function()
         type = "error",
         position = "top"
     })
-end)
-
-CreateThread(function()
-    local isNear = false;
-    while true do
-        Wait(0)
-
-        isNear = isNearBusStop();
-        
-        if not isTraveling and isNear then
-            lib.showTextUI('[E] - Open Bus Stop Menu', {
-                position = "top-center",
-                icon = 'bus'
-            })
-            if IsControlJustPressed(0, 38) then
-                openBusStopMenu()
-                lib.hideTextUI()
-            end
-        else
-            lib.hideTextUI()
-        end
-
-        if not isNear then
-            Wait(500)
-        end
-    end
 end)
